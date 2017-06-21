@@ -77,6 +77,16 @@ class Bloqs_experiments {
         return ee()->TMPL->tagdata;
     }
 
+    private function chooseVariation()
+    {
+        // Randomize or default to the first section of content unless overridden in the URI.
+        if ($this->randomizeExperiments === true) {
+            $this->setCacheItem('experimentVariation', rand(1, 2));
+        } else {
+            $this->setCacheItem('experimentVariation', 1);
+        }
+    }
+
     private function validateConfig()
     {
         // OptionsResolver
