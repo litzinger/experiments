@@ -1,14 +1,16 @@
 <?php
 
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
 if ( !defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
  * @package     ExpressionEngine
  * @subpackage  Plugins
- * @category    Bloqs Experiments
+ * @category    Experiments
  * @author      Brian Litzinger
  * @copyright   Copyright (c) 2012, 2017 - BoldMinded, LLC
- * @link        http://boldminded.com/add-ons/bloqs-experiments
+ * @link        http://boldminded.com/add-ons/experiments
  * @license
  *
  * Copyright (c) 2017. BoldMinded, LLC
@@ -36,61 +38,154 @@ if ( !defined('BASEPATH')) exit('No direct script access allowed');
  * to this clause.
  */
 
-require PATH_THIRD.'bloqs_experiments/addon.setup.php';
+require PATH_THIRD.'experiments/addon.setup.php';
 
-class Bloqs_experiments {
+class Experiments {
 
-    private $config = [
-        'query_parameter' => 'v',
+    /**
+     * @var array
+     */
+    private $options = [];
+
+    /**
+     * @var array
+     */
+    private $defaultOptions = [
+        'experimentId' => '',
+        'chosen' => null,
+        'queryParameter' => 'v',
         'randomize' => true,
+        'initialized' => false,
     ];
+
+    /**
+     * Create a cached options array. {exp:experiments:content} may be called multiple times.
+     */
+    public function __construct()
+    {
+        if (!isset(ee()->session->cache['experiments'])) {
+            ee()->session->cache['experiments'] = [];
+        }
+
+        $this->options =& ee()->session->cache['experiments'];
+    }
 
     public function run()
     {
-        $experimentId = $this->fetchParam('experiment_id');
-        $experimentType = $this->fetchParam('experiment_type');
+        $options = $this->defaultOptions;
+        $options['initialized'] = true;
 
-        $this->config = $this->validateConfig();
+        if ($experimentId = $this->fetchParam('experiment_id')) {
+            $options['experimentId'] = $experimentId;
+        }
+
+        if ($queryParameter = $this->fetchParam('query_parameter')) {
+            $options['queryParameter'] = $queryParameter;
+        }
+
+        if ($randomize = $this->fetchParam('randomize')) {
+            $options['randomize'] = $randomize;
+        }
+
+        $this->options = $this->configureOptions($options);
     }
 
-    public function wrap()
+    /**
+     * @return string
+     */
+    public function content()
     {
-        $tagdata = $this->getTagdata();
-        $variation = (int) $this->fetchParam('variation', 1);
+        if ($this->options['initialized'] === false) {
+            $this->run();
+        }
 
-        if (!is_int($variation)) {
+        $this->chooseVariation();
+        $tagdata = $this->getTagdata();
+        $variation = (int) $this->fetchParam('variation', $this->options['chosen']);
+
+        // If its not a valid variation, or it is defined as 'Always Show'
+        if (!is_int($variation) || $variation === 0) {
             return $tagdata;
         }
 
-        if ($this->config['chosen'] == $variation) {
+        // If the selected variation for the content is not what was randomly chosen,
+        // or overridden via a query parameter, do not return the content.
+        if ($this->options['chosen'] != $variation) {
+            return '';
+        }
 
+        return $tagdata;
+    }
+
+    /**
+     * Randomize or override the chosen variation via a GET parameter
+     */
+    private function chooseVariation()
+    {
+        $queryParameter = $this->getQueryParameter();
+
+        if ($queryParameter && is_numeric($queryParameter)) {
+            $this->options['chosen'] = (int) $queryParameter;
+        } elseif ($this->options['randomize'] === true && $this->options['chosen'] === null) {
+            $this->options['chosen'] = rand(1, 2);
         }
     }
 
-    private function fetchParam($name, $defaultValue = null)
+    /**
+     * @param array $options
+     * @return array
+     */
+    private function configureOptions(Array $options)
     {
-        return ee()->TMPL->fetch_param($name, $defaultValue);
+        $resolver = new OptionsResolver();
+        $resolver
+            ->setRequired([
+                'experimentId',
+                'chosen',
+                'queryParameter',
+                'randomize'
+            ])
+            ->setDefaults($this->defaultOptions)
+        ;
+
+        $options = $resolver->resolve($options);
+
+        return $options;
     }
 
+    /**
+     * @param $name
+     * @param null $defaultValue
+     * @return bool|string
+     */
+    private function fetchParam($name, $defaultValue = null)
+    {
+        $value = ee()->TMPL->fetch_param($name, $defaultValue);
+
+        if (in_array($value, ['yes', 'y'])) {
+            return true;
+        }
+
+        if (in_array($value, ['no', 'n'])) {
+            return false;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return string
+     */
     private function getTagdata()
     {
         return ee()->TMPL->tagdata;
     }
 
-    private function chooseVariation()
+    /**
+     * @return string|null
+     */
+    private function getQueryParameter()
     {
-        // Randomize or default to the first section of content unless overridden in the URI.
-        if ($this->randomizeExperiments === true) {
-            $this->setCacheItem('experimentVariation', rand(1, 2));
-        } else {
-            $this->setCacheItem('experimentVariation', 1);
-        }
+        return ee()->input->get($this->options['queryParameter']);
     }
-
-    private function validateConfig()
-    {
-        // OptionsResolver
-        return [];
-    }
-
 }

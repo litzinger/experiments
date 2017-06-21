@@ -1,37 +1,79 @@
 <?php
 
-class Experiment_ft extends EE_Fieldtype
+if ( !defined('BASEPATH')) exit('No direct script access allowed');
+
+/**
+ * @package     ExpressionEngine
+ * @subpackage  Fieldtypes
+ * @category    Experiments
+ * @author      Brian Litzinger
+ * @copyright   Copyright (c) 2012, 2017 - BoldMinded, LLC
+ * @link        http://boldminded.com/add-ons/experiments
+ * @license
+ *
+ * Copyright (c) 2017. BoldMinded, LLC
+ * All rights reserved.
+ *
+ * This source is commercial software. Use of this software requires a
+ * site license for each domain it is used on. Use of this software or any
+ * of its source code without express written permission in the form of
+ * a purchased commercial or other license is prohibited.
+ *
+ * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
+ * PARTICULAR PURPOSE.
+ *
+ * As part of the license agreement for this software, all modifications
+ * to this source must be submitted to the original author for review and
+ * possible inclusion in future releases. No compensation will be provided
+ * for patches, although where possible we will attribute each contribution
+ * in file revision notes. Submitting such modifications constitutes
+ * assignment of copyright to the original author (Brian Litzinger and
+ * BoldMinded, LLC) for such modifications. If you do not wish to assign
+ * copyright to the original author, your license to  use and modify this
+ * source is null and void. Use of this software constitutes your agreement
+ * to this clause.
+ */
+
+require PATH_THIRD.'experiments/addon.setup.php';
+
+class Experiments_ft extends EE_Fieldtype
 {
-
+    /**
+     * @var array
+     */
     public $settings = [];
-    public $has_array_data = false;
+
+    /**
+     * @var array
+     */
     public $info = [
-        'name'      => 'Jamf Experiment (A/B Testing)',
-        'version'   => '1.0.0',
-    ];
-
-    private $cache = [];
-
-    private $variantOptions = [
-        'all' => 'Always Show',
-        '1' => 'Original',
-        '2' => 'Variant'
+        'name' => EXPERIMENTS_NAME,
+        'version' => EXPERIMENTS_VERSION,
     ];
 
     /**
-     * Constructor
-     *
-     * @access  public
+     * @var bool
      */
+    public $has_array_data = false;
+
+    /**
+     * @var array
+     */
+    private $variantOptions = [];
+
     public function __construct()
     {
         parent::__construct();
 
-        if (!isset(ee()->session->cache['jamfExperiment'])) {
-            ee()->session->cache['jamfExperiment'] = [];
-        }
+        ee()->lang->loadfile('experiments');
 
-        $this->cache =& ee()->session->cache['jamfExperiment'];
+        $this->variantOptions = [
+            0 => lang('experiments_always_show'),
+            1 => lang('experiments_original'),
+            2 => lang('experiments_variant'),
+        ];
     }
 
     public function accepts_content_type($name)
@@ -58,44 +100,35 @@ class Experiment_ft extends EE_Fieldtype
     {
         $data = !is_array($data) ? json_decode($data) : $data;
 
-        return $this->createSelect('Variation', $fieldName, $this->variantOptions, (isset($data->variation) ? $data->variation : 'all'), 'The current variation group this content belongs to.');
+        return $this->createSelect(
+            'variation',
+            $fieldName,
+            $this->variantOptions,
+            (isset($data->variation) ? $data->variation : 0)
+        );
     }
 
     /**
-     * @param $label
-     * @param $name
-     * @param $data
-     * @param string $instructions
-     * @return string
-     */
-    private function createInput($label, $name, $data, $instructions = '')
-    {
-        $field = '<label>'. $label .'</label>';
-        if ($instructions) {
-            $field .= '<label class="blocksft-atom-instructions">'. $instructions .'</label>';
-        }
-        $name = $name .'['. url_title($label, '_', true) .']';
-        $field .= form_input($name, $data);
-
-        return $field;
-    }
-
-    /**
-     * @param $label
-     * @param $name
+     * @param $optionName
+     * @param $fieldName
      * @param $options
      * @param $data
+     * @param string $label
      * @param string $instructions
      * @return string
      */
-    private function createSelect($label, $name, $options, $data, $instructions = '')
+    private function createSelect($optionName, $fieldName, $options, $data, $label = '', $instructions = '')
     {
-        $field = '<label>'. $label .'</label>';
+        $field = '';
+
+        if ($label) {
+            $field .= '<label>'. $label .'</label>';
+        }
         if ($instructions) {
             $field .= '<label class="blocksft-atom-instructions">'. $instructions .'</label>';
         }
-        $name = $name .'['. url_title($label, '_', true) .']';
-        $field .= form_dropdown($name, $options, $data);
+
+        $field .= form_dropdown($fieldName .'['. url_title($optionName, '_', true) .']', $options, $data);
 
         return $field;
     }
@@ -138,9 +171,9 @@ class Experiment_ft extends EE_Fieldtype
      * @param string $tagdata
      * @return string url
      */
-    public function replace_tag($data, $params = array(), $tagdata = '')
+    public function replace_tag($data, $params = [], $tagdata = '')
     {
-        $data = array($this->prepareData($data));
+        $data = [$this->prepareData($data)];
         $tagdata = ee()->TMPL->parse_variables($tagdata, $data);
 
         return $tagdata;
@@ -149,7 +182,7 @@ class Experiment_ft extends EE_Fieldtype
     /**
      * Allow direct access to a specific value, e.g.
      *
-     * {myfield:modifier}
+     * {field_name:modifier}
      *
      * @param $data
      * @param array $params
@@ -157,7 +190,7 @@ class Experiment_ft extends EE_Fieldtype
      * @param $modifier
      * @return string
      */
-    public function replace_tag_catchall($data, $params = array(), $tagdata = false, $modifier)
+    public function replace_tag_catchall($data, $params = [], $tagdata = false, $modifier)
     {
         $data = $this->prepareData($data);
         return isset($data[$modifier]) ? $data[$modifier] : '';
