@@ -98,13 +98,11 @@ class Experiments_ft extends EE_Fieldtype
      */
     private function renderField($data, $fieldName)
     {
-        $data = !is_array($data) ? json_decode($data) : $data;
-
         return $this->createSelect(
             'variation',
             $fieldName,
             $this->variantOptions,
-            (isset($data->variation) ? $data->variation : 0)
+            ($data ? $data : 0)
         );
     }
 
@@ -128,44 +126,13 @@ class Experiments_ft extends EE_Fieldtype
             $field .= '<label class="blocksft-atom-instructions">'. $instructions .'</label>';
         }
 
-        $field .= form_dropdown($fieldName .'['. url_title($optionName, '_', true) .']', $options, $data);
+        $name = ee('Format')->make('Text', $optionName)->urlSlug();
+        $field .= form_dropdown($fieldName .'['. $name .']', $options, $data);
 
         return $field;
     }
 
     /**
-     * Just need an empty method here since we are not doing anything special.
-     */
-    public function grid_save_settings()
-    {
-        return;
-    }
-
-    /**
-     * Save Normal Data
-     *
-     * @param $data
-     * @return string
-     */
-    public function save($data)
-    {
-        return json_encode($data);
-    }
-
-    /**
-     * Save Matrix Cell Data
-     *
-     * @param $data
-     * @return string
-     */
-    public function save_cell($data)
-    {
-        return $this->save($data);
-    }
-
-    /**
-     * Matrix/Grid and Default tag rendering
-     *
      * @param $data
      * @param array $params
      * @param string $tagdata
@@ -173,35 +140,8 @@ class Experiments_ft extends EE_Fieldtype
      */
     public function replace_tag($data, $params = [], $tagdata = '')
     {
-        $data = [$this->prepareData($data)];
-        $tagdata = ee()->TMPL->parse_variables($tagdata, $data);
+        $tagdata = ee()->TMPL->parse_variables($tagdata, [$data]);
 
         return $tagdata;
-    }
-
-    /**
-     * Allow direct access to a specific value, e.g.
-     *
-     * {field_name:modifier}
-     *
-     * @param $data
-     * @param array $params
-     * @param bool $tagdata
-     * @param $modifier
-     * @return string
-     */
-    public function replace_tag_catchall($data, $params = [], $tagdata = false, $modifier)
-    {
-        $data = $this->prepareData($data);
-        return isset($data[$modifier]) ? $data[$modifier] : '';
-    }
-
-    /**
-     * @param $data
-     * @return mixed
-     */
-    private function prepareData($data)
-    {
-        return json_decode($data, true);
     }
 }

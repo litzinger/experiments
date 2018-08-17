@@ -17,4 +17,10 @@ return [
     'version'     => EXPERIMENTS_VERSION,
     'namespace'   => 'BoldMinded\Experiments',
     'settings_exist' => false,
+
+    'services.singletons' => [
+        'Variation' => function() {
+            return new BoldMinded\Experiments\Services\Variation();
+        },
+    ]
 ];

@@ -1,5 +1,6 @@
 <?php
 
+use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 if ( !defined('BASEPATH')) exit('No direct script access allowed');
@@ -53,24 +54,21 @@ class Experiments {
     private $defaultOptions = [
         'experimentId' => '',
         'chosen' => null,
-        'queryParameter' => 'v',
-        'randomize' => true,
         'initialized' => false,
+        'queryParameterName' => 'v',
+        'queryParameterValue' => null,
+        'randomize' => true,
     ];
+
+    /**
+     * @var \BoldMinded\Experiments\Services\Variation
+     */
+    private $variationService;
 
     /**
      * Create a cached options array. {exp:experiments:content} may be called multiple times.
      */
     public function __construct()
-    {
-        if (!isset(ee()->session->cache['experiments'])) {
-            ee()->session->cache['experiments'] = [];
-        }
-
-        $this->options =& ee()->session->cache['experiments'];
-    }
-
-    public function run()
     {
         $options = $this->defaultOptions;
         $options['initialized'] = true;
@@ -80,72 +78,84 @@ class Experiments {
         }
 
         if ($queryParameter = $this->fetchParam('query_parameter')) {
-            $options['queryParameter'] = $queryParameter;
+            $options['queryParameterName'] = $queryParameter;
         }
 
         if ($randomize = $this->fetchParam('randomize')) {
             $options['randomize'] = $randomize;
         }
 
+        $options['queryParameterValue'] = ee()->input->get($options['queryParameterName']);
+
         $this->options = $this->configureOptions($options);
+
+        $this->variationService = ee('experiments:Variation');
+        $this->variationService->setOptions($this->options);
     }
 
     /**
+     * {exp:experiments:content choose="{experiment_field_name}"}
+     *      content to show or hide
+     * {/exp:experiments:content}
+     *
      * @return string
      */
     public function content()
     {
-        if ($this->options['initialized'] === false) {
-            $this->run();
+        $prefix = $this->fetchParam('prefix');
+        $choose = $this->fetchParam('choose');
+
+        if ($choose) {
+            $choose = (int) $choose;
         }
 
-        $this->chooseVariation();
+        $this->variationService->choose($choose);
+
         $tagdata = $this->getTagdata();
-        $variation = (int) $this->fetchParam('variation', $this->options['chosen']);
 
-        // If its not a valid variation, or it is defined as 'Always Show'
-        if (!is_int($variation) || $variation === 0) {
-            return $tagdata;
+        ee()->load->library('api');
+        ee()->legacy_api->instantiate('channel_fields');
+
+        $originalContentSections = ee()->api_channel_fields->get_pair_field($tagdata, 'original', $prefix);
+        $variantContentSections = ee()->api_channel_fields->get_pair_field($tagdata, 'variant', $prefix);
+
+        foreach ($originalContentSections as $originalContent) {
+            if ($this->variationService->isOriginal() && isset($originalContent[3])) {
+                $tagdata = str_replace($originalContent[3], $originalContent[1], $tagdata);
+            } else {
+                $tagdata = str_replace($originalContent[3], '', $tagdata);
+            }
         }
 
-        // If the selected variation for the content is not what was randomly chosen,
-        // or overridden via a query parameter, do not return the content.
-        if ($this->options['chosen'] != $variation) {
-            return '';
+        foreach ($variantContentSections as $variantContent) {
+            if ($this->variationService->isVariation() && isset($variantContent[3])) {
+                $tagdata = str_replace($variantContent[3], $variantContent[1], $tagdata);
+            } else {
+                $tagdata = str_replace($variantContent[3], '', $tagdata);
+            }
         }
 
         return $tagdata;
     }
 
     /**
-     * Randomize or override the chosen variation via a GET parameter
-     */
-    private function chooseVariation()
-    {
-        $queryParameter = $this->getQueryParameter();
-
-        if ($queryParameter && is_numeric($queryParameter)) {
-            $this->options['chosen'] = (int) $queryParameter;
-        } elseif ($this->options['randomize'] === true && $this->options['chosen'] === null) {
-            $this->options['chosen'] = rand(1, 2);
-        }
-    }
-
-    /**
      * @param array $options
      * @return array
      */
-    private function configureOptions(Array $options)
+    private function configureOptions(array $options = [])
     {
         $resolver = new OptionsResolver();
         $resolver
             ->setRequired([
                 'experimentId',
                 'chosen',
-                'queryParameter',
+                'queryParameterName',
                 'randomize'
             ])
             ->setDefaults($this->defaultOptions)
+            ->setNormalizer('queryParameterValue', function (Options $options, $value) {
+                return (int) $value;
+            });
         ;
 
         $options = $resolver->resolve($options);
@@ -179,13 +189,5 @@ class Experiments {
     private function getTagdata()
     {
         return ee()->TMPL->tagdata;
-    }
-
-    /**
-     * @return string|null
-     */
-    private function getQueryParameter()
-    {
-        return ee()->input->get($this->options['queryParameter']);
     }
 }
