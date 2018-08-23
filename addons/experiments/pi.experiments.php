@@ -138,6 +138,38 @@ class Experiments {
         return $tagdata;
     }
 
+    public function bloqs()
+    {
+        $tagdata = $this->getTagdata();
+
+        preg_match('/{!-- bloqs:start:(\d+) vars="(.*?)" --}(.*){!-- bloqs:end:\1 --}/is', $tagdata, $matches);
+
+        if (empty($matches)) {
+            return $tagdata;
+        }
+
+        $vars = $matches[2];
+        if ($vars !== '') {
+            $vars = json_decode(html_entity_decode($vars), true);
+
+            if (isset($vars['show']) && $vars['show'] === 'n') {
+                $tagdata = str_replace($matches[0], '', $tagdata);
+            }
+        }
+
+        return $tagdata;
+    }
+
+    public function blocks_block_vars($vars)
+    {
+        // Use this took to determine what params are printed in the html comment markers
+
+        // use the vars to get the value of an experiment field, then call the service to see if the block
+        // should be hidden or not, then change the vars to a boolean value that the bloqs tag above can use
+        // to remove content if it should be hidden.
+    }
+
+
     /**
      * @param array $options
      * @return array
