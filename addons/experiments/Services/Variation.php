@@ -5,6 +5,11 @@ namespace BoldMinded\Experiments\Services;
 class Variation
 {
     /**
+     * @var int
+     */
+    private $chosen;
+
+    /**
      * @var array
      */
     private $options;
@@ -28,12 +33,13 @@ class Variation
     }
 
     /**
-     * @return null
+     * @return $this
      */
     public function choose($chosenVariation = null)
     {
         if (!$chosenVariation) {
-            $chosenVariation = $this->chooseVariation();
+            $this->chooseVariation();
+            $chosenVariation = $this->getChosen();
         }
 
         // If its not a valid variation, or it is defined as 'Always Show'
@@ -41,40 +47,75 @@ class Variation
             $this->setIsOriginal(false);
             $this->setIsVariation(false);
 
-            return;
+            return $this;
         }
 
         if ($chosenVariation === 2) {
             $this->setIsOriginal(false);
             $this->setIsVariation(true);
 
-            return;
+            return $this;
         }
 
         $this->setIsOriginal(true);
         $this->setIsVariation(false);
+
+        return $this;
+    }
+
+    /**
+     * @param $chosen
+     * @return bool
+     */
+    public function shouldShowContent($chosen)
+    {
+        $this->chooseVariation();
+
+        if ($this->getChosen() !== $chosen && $chosen !== 0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
      * Randomize or override the chosen variation via a GET parameter
      *
-     * @return int
+     * @return $this
      */
     private function chooseVariation()
     {
-        if (isset($this->options['chosen'])) {
-            return $this->options['chosen'];
+        if ($this->getChosen() !== null) {
+            return $this;
         }
 
         $queryParameterValue = $this->options['queryParameterValue'];
 
         if ($queryParameterValue && is_numeric($queryParameterValue)) {
-            $this->options['chosen'] = $queryParameterValue;
-        } elseif ($this->options['randomize'] === true && $this->options['chosen'] === null) {
-            $this->options['chosen'] = rand(1, 2);
+            $this->setChosen((int) $queryParameterValue);
+        } elseif ($this->options['randomize'] === true && $this->getChosen() === null) {
+            $this->setChosen(rand(1, 2));
         }
 
-        return (int) $this->options['chosen'];
+        return $this;
+    }
+
+    /**
+     * @param int $chosen
+     */
+    public function setChosen($chosen)
+    {
+        $this->chosen = $chosen;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getChosen()
+    {
+        return $this->chosen;
     }
 
     /**
@@ -83,6 +124,8 @@ class Variation
     public function setOptions(array $options = [])
     {
         $this->options = $options;
+
+        return $this;
     }
 
     /**

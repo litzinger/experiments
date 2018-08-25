@@ -10,7 +10,7 @@ if ( !defined('BASEPATH')) exit('No direct script access allowed');
  * @subpackage  Plugins
  * @category    Experiments
  * @author      Brian Litzinger
- * @copyright   Copyright (c) 2012, 2017 - BoldMinded, LLC
+ * @copyright   Copyright (c) 2012, 2018 - BoldMinded, LLC
  * @link        http://boldminded.com/add-ons/experiments
  * @license
  *
@@ -53,7 +53,6 @@ class Experiments {
      */
     private $defaultOptions = [
         'experimentId' => '',
-        'chosen' => null,
         'initialized' => false,
         'queryParameterName' => 'v',
         'queryParameterValue' => null,
@@ -95,7 +94,19 @@ class Experiments {
 
     /**
      * {exp:experiments:content choose="{experiment_field_name}"}
-     *      content to show or hide
+     *      {original}
+     *          Original Content #1
+     *      {/original}
+     *
+     *      Always Shown
+     *
+     *      {original}
+     *          Original Content #2
+     *      {/original}
+     *
+     *      {variant}
+     *          Variant Content #1
+     *      {/variant}
      * {/exp:experiments:content}
      *
      * @return string
@@ -138,37 +149,125 @@ class Experiments {
         return $tagdata;
     }
 
+    /**
+     * {exp:channel:entries channel="pages" entry_id="{segment_2}"}
+     *      {exp:experiments:bloqs}
+     *          {blocks_field}
+     *              ... blocks ...
+     *          {/blocks_field}
+     *      {/exp:experiments:bloqs}
+     * {/exp:channel:entries}
+     *
+     * @return string
+     */
     public function bloqs()
     {
         $tagdata = $this->getTagdata();
+        $tagdata = $this->recurseMatchBloqs($tagdata);
 
-        preg_match('/{!-- bloqs:start:(\d+) vars="(.*?)" --}(.*){!-- bloqs:end:\1 --}/is', $tagdata, $matches);
+        return $tagdata;
+    }
+
+    /**
+     * @param string $tagdata
+     * @return string
+     */
+    private function recurseMatchBloqs($tagdata)
+    {
+        $matches = $this->matchBloqs($tagdata);
 
         if (empty($matches)) {
             return $tagdata;
         }
 
-        $vars = $matches[2];
-        if ($vars !== '') {
-            $vars = json_decode(html_entity_decode($vars), true);
+        foreach ($matches['chunks'] as $matchKey => $chunk) {
+            $vars = $matches['vars'][$matchKey];
 
-            if (isset($vars['show']) && $vars['show'] === 'n') {
-                $tagdata = str_replace($matches[0], '', $tagdata);
+            if ($vars !== '') {
+                $vars = json_decode(html_entity_decode($vars), true);
+
+                if ($vars === null) {
+                    $tagdata = $this->removeWrappingMarkers($tagdata, $matches);
+                    $tagdata = $this->recurseMatchBloqs($tagdata);
+                }
+
+                $atoms = $this->findExperimentAtoms($vars);
+
+                if (empty($atoms)) {
+                    $tagdata = $this->removeWrappingMarkers($tagdata, $matches);
+                    $tagdata = $this->recurseMatchBloqs($tagdata);
+                }
+
+                $vars = array_filter($vars, function($value, $index) use ($atoms) {
+                    return in_array($index, $atoms);
+                }, ARRAY_FILTER_USE_BOTH);
+
+                // Should only be 1 Experiment field added to a block. If more were added ignore them and use the first.
+                $chosen = (int) reset($vars);
+
+                // Remove the block tag pair from the output
+                if (!$this->variationService->shouldShowContent($chosen)) {
+                    $tagdata = str_replace($chunk, '', $tagdata);
+                    $tagdata = $this->recurseMatchBloqs($tagdata);
+                }
             }
         }
 
         return $tagdata;
     }
 
-    public function blocks_block_vars($vars)
+    /**
+     * @param $tagdata
+     * @return array
+     */
+    private function matchBloqs($tagdata)
     {
-        // Use this took to determine what params are printed in the html comment markers
+        preg_match_all('/{!-- bloqs:start:(\d+) vars="(.*?)" --}(.*){!-- bloqs:end:\1 --}/is', $tagdata, $matches);
 
-        // use the vars to get the value of an experiment field, then call the service to see if the block
-        // should be hidden or not, then change the vars to a boolean value that the bloqs tag above can use
-        // to remove content if it should be hidden.
+        if (!$matches) {
+            return [];
+        }
+
+        return [
+            'chunks' => $matches[0],
+            'ids' => $matches[1],
+            'vars' => $matches[2],
+            'content' => $matches[3],
+        ];
     }
 
+    /**
+     * @param string $tagdata
+     * @param array[chunks,id,vars,content] $matches
+     * @return string
+     */
+    private function removeWrappingMarkers($tagdata, $matches)
+    {
+        foreach ($matches['ids'] as $id) {
+            $tagdata = preg_replace('/\{!-- bloqs:(start|end):'. preg_quote($id) .'.*?--\}/is', '', $tagdata);
+        }
+
+        return $tagdata;
+    }
+
+    /**
+     * @param array $vars
+     * @return array
+     */
+    private function findExperimentAtoms($vars)
+    {
+        if (empty($vars)) {
+            return [];
+        }
+
+        $result = ee('db')
+            ->where_in('id', array_keys($vars))
+            ->where('type', 'experiments')
+            ->get('blocks_atomdefinition')
+            ->result_array();
+
+        return array_column($result, 'id');
+    }
 
     /**
      * @param array $options
@@ -180,7 +279,6 @@ class Experiments {
         $resolver
             ->setRequired([
                 'experimentId',
-                'chosen',
                 'queryParameterName',
                 'randomize'
             ])
