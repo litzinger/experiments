@@ -1,5 +1,6 @@
 <?php
 
+use BoldMinded\Experiments\Services\Variation;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -44,22 +45,6 @@ require PATH_THIRD.'experiments/addon.setup.php';
 class Experiments {
 
     /**
-     * @var array
-     */
-    private $options = [];
-
-    /**
-     * @var array
-     */
-    private $defaultOptions = [
-        'experimentId' => '',
-        'initialized' => false,
-        'queryParameterName' => 'v',
-        'queryParameterValue' => null,
-        'randomize' => true,
-    ];
-
-    /**
      * @var \BoldMinded\Experiments\Services\Variation
      */
     private $variationService;
@@ -69,8 +54,7 @@ class Experiments {
      */
     public function __construct()
     {
-        $options = $this->defaultOptions;
-        $options['initialized'] = true;
+        $options = [];
 
         if ($experimentId = $this->fetchParam('experiment_id')) {
             $options['experimentId'] = $experimentId;
@@ -84,12 +68,10 @@ class Experiments {
             $options['randomize'] = $randomize;
         }
 
-        $options['queryParameterValue'] = ee()->input->get($options['queryParameterName']);
-
-        $this->options = $this->configureOptions($options);
+        $options['queryParameterValue'] = ee()->input->get(Variation::QUERY_PARAM_NAME);
 
         $this->variationService = ee('experiments:Variation');
-        $this->variationService->setOptions($this->options);
+        $this->variationService->setOptions($options);
     }
 
     /**
@@ -267,30 +249,6 @@ class Experiments {
             ->result_array();
 
         return array_column($result, 'id');
-    }
-
-    /**
-     * @param array $options
-     * @return array
-     */
-    private function configureOptions(array $options = [])
-    {
-        $resolver = new OptionsResolver();
-        $resolver
-            ->setRequired([
-                'experimentId',
-                'queryParameterName',
-                'randomize'
-            ])
-            ->setDefaults($this->defaultOptions)
-            ->setNormalizer('queryParameterValue', function (Options $options, $value) {
-                return (int) $value;
-            });
-        ;
-
-        $options = $resolver->resolve($options);
-
-        return $options;
     }
 
     /**

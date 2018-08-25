@@ -2,12 +2,27 @@
 
 namespace BoldMinded\Experiments\Services;
 
+use Symfony\Component\OptionsResolver\Options;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
 class Variation
 {
+    const QUERY_PARAM_NAME = 'v';
+
     /**
      * @var int
      */
     private $chosen;
+
+    /**
+     * @var array
+     */
+    private $defaultOptions = [
+        'experimentId' => '',
+        'queryParameterName' => self::QUERY_PARAM_NAME,
+        'queryParameterValue' => null,
+        'randomize' => true,
+    ];
 
     /**
      * @var array
@@ -119,16 +134,6 @@ class Variation
     }
 
     /**
-     * @param array $options
-     */
-    public function setOptions(array $options = [])
-    {
-        $this->options = $options;
-
-        return $this;
-    }
-
-    /**
      * @return boolean
      */
     public function isOriginal()
@@ -164,5 +169,29 @@ class Variation
         $this->isVariation = $isVariation;
 
         return $this;
+    }
+
+    /**
+     * @param array $options
+     * @return array
+     */
+    public function setOptions(array $options = [])
+    {
+        $resolver = new OptionsResolver();
+        $resolver
+            ->setRequired([
+                'experimentId',
+                'queryParameterName',
+                'randomize'
+            ])
+            ->setDefaults($this->defaultOptions)
+            ->setNormalizer('queryParameterValue', function (Options $options, $value) {
+                return (int) $value;
+            });
+        ;
+
+        $options = $resolver->resolve($options);
+
+        $this->options = $options;
     }
 }
