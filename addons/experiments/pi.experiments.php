@@ -68,10 +68,14 @@ class Experiments {
             $options['randomize'] = $randomize;
         }
 
-        $options['queryParameterValue'] = ee()->input->get(Variation::QUERY_PARAM_NAME);
+        // Get options from the config file
+        $eeConfigOptions = ee()->config->item('experiments') ?: [];
+        $getParams = ee('Security/XSS')->clean($_GET);
 
         $this->variationService = ee('experiments:Variation');
-        $this->variationService->setOptions($options);
+        $this->variationService
+            ->setOptionsFromConfig($eeConfigOptions)
+            ->setOptions($options, $getParams);
     }
 
     /**

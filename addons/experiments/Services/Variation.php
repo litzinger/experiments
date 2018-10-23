@@ -18,7 +18,6 @@ class Variation
      * @var array
      */
     private $defaultOptions = [
-        'experimentId' => '',
         'queryParameterName' => self::QUERY_PARAM_NAME,
         'queryParameterValue' => null,
         'randomize' => true,
@@ -80,6 +79,7 @@ class Variation
 
     /**
      * @param $chosen
+     *
      * @return bool
      */
     public function shouldShowContent($chosen)
@@ -117,6 +117,8 @@ class Variation
 
     /**
      * @param int $chosen
+     *
+     * @return $this
      */
     public function setChosen($chosen)
     {
@@ -143,6 +145,7 @@ class Variation
 
     /**
      * @param boolean $isOriginal
+     *
      * @return $this
      */
     public function setIsOriginal($isOriginal)
@@ -162,6 +165,7 @@ class Variation
 
     /**
      * @param boolean $isVariation
+     *
      * @return $this
      */
     public function setIsVariation($isVariation)
@@ -173,25 +177,47 @@ class Variation
 
     /**
      * @param array $options
-     * @return array
+     *
+     * @return $this
      */
-    public function setOptions(array $options = [])
+    public function setOptions(array $options = [], array $getParams = [])
     {
         $resolver = new OptionsResolver();
         $resolver
             ->setRequired([
-                'experimentId',
                 'queryParameterName',
                 'randomize'
             ])
             ->setDefaults($this->defaultOptions)
-            ->setNormalizer('queryParameterValue', function (Options $options, $value) {
-                return (int) $value;
+            ->setNormalizer('queryParameterValue', function (Options $options, $value) use ($getParams) {
+                if (isset($getParams[$options['queryParameterName']])) {
+                    return (int) $getParams[$options['queryParameterName']];
+                }
+
+                return null;
             });
         ;
 
         $options = $resolver->resolve($options);
 
         $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * @param array $eeConfigOptions
+     *
+     * @return $this
+     */
+    public function setOptionsFromConfig(array $eeConfigOptions = [])
+    {
+        foreach ($this->defaultOptions as $optionKey => $optionValue) {
+            if (isset($eeConfigOptions[$optionKey])) {
+                $this->defaultOptions[$optionKey] = $eeConfigOptions[$optionKey];
+            }
+        }
+
+        return $this;
     }
 }
