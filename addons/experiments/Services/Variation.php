@@ -86,7 +86,7 @@ class Variation
     {
         $this->chooseVariation();
 
-        if ($this->getChosen() !== $chosen && $chosen !== 0) {
+        if ($this->getChosen() !== null && $this->getChosen() !== $chosen && $chosen !== 0) {
             return false;
         }
 
