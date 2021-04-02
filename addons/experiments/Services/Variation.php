@@ -2,9 +2,6 @@
 
 namespace BoldMinded\Experiments\Services;
 
-use Symfony\Component\OptionsResolver\Options;
-use Symfony\Component\OptionsResolver\OptionsResolver;
-
 class Variation
 {
     const QUERY_PARAM_NAME = 'v';
