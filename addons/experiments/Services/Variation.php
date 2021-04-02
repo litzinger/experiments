@@ -20,7 +20,7 @@ class Variation
     private $defaultOptions = [
         'queryParameterName' => self::QUERY_PARAM_NAME,
         'queryParameterValue' => null,
-        'randomize' => true,
+        'randomize' => false,
     ];
 
     /**
