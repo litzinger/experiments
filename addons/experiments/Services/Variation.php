@@ -177,30 +177,24 @@ class Variation
 
     /**
      * @param array $options
-     *
+     * @param array $getParams
      * @return $this
      */
     public function setOptions(array $options = [], array $getParams = [])
     {
-        $resolver = new OptionsResolver();
-        $resolver
-            ->setRequired([
-                'queryParameterName',
-                'randomize'
-            ])
-            ->setDefaults($this->defaultOptions)
-            ->setNormalizer('queryParameterValue', function (Options $options, $value) use ($getParams) {
-                if (isset($getParams[$options['queryParameterName']])) {
-                    return (int) $getParams[$options['queryParameterName']];
-                }
+        $this->options = $this->defaultOptions;
 
-                return null;
-            });
-        ;
+        if (isset($options['queryParameterName'])) {
+            $this->options['queryParameterName'] = $options['queryParameterName'];
+        }
 
-        $options = $resolver->resolve($options);
+        if (isset($options['randomize'])) {
+            $this->options['randomize'] = $options['randomize'];
+        }
 
-        $this->options = $options;
+        if (isset($getParams[$this->options['queryParameterName']])) {
+            $this->options['queryParameterValue'] = (int) $getParams[$this->options['queryParameterName']];
+        }
 
         return $this;
     }

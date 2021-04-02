@@ -1,11 +1,8 @@
 <?php
 
-// Make sure our packages are loaded
-require 'vendor/autoload.php';
-
 if (! defined('EXPERIMENTS_VERSION')) {
     define('EXPERIMENTS_NAME', 'Experiments');
-    define('EXPERIMENTS_VERSION', '1.0.0');
+    define('EXPERIMENTS_VERSION', '1.0.1');
 }
 
 return [
@@ -19,7 +16,7 @@ return [
     'settings_exist' => false,
 
     'services.singletons' => [
-        'Variation' => function() {
+        'Variation' => function () {
             return new BoldMinded\Experiments\Services\Variation();
         },
     ]

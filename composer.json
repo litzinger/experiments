@@ -1,9 +1,0 @@
-{
-    "require": {
-        "symfony/options-resolver": "^3.3"
-    },
-    "config": {
-        "vendor-dir": "addons/experiments/vendor",
-        "preferred-install": "dist"
-    }
-}
