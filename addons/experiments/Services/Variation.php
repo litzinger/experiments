@@ -5,6 +5,7 @@ namespace BoldMinded\Experiments\Services;
 class Variation
 {
     const QUERY_PARAM_NAME = 'v';
+    const MAX_VARIATIONS = 3;
 
     /**
      * @var int
@@ -18,6 +19,7 @@ class Variation
         'queryParameterName' => self::QUERY_PARAM_NAME,
         'queryParameterValue' => null,
         'randomize' => false,
+        'default' => 0,
     ];
 
     /**
@@ -75,11 +77,7 @@ class Variation
     }
 
     /**
-     * @param int|null $chosen
-     *      null = no experiment is active
-     *      0 = experiment is active, but it's a content that should always show regardless of variation
-     *      1 = experiment is active, show Original content
-     *      2 = experiment is active, show Variant content
+     * @param $chosen
      *
      * @return bool
      */
@@ -87,7 +85,7 @@ class Variation
     {
         $this->chooseVariation();
 
-        if ($this->getChosen() !== $chosen && $chosen !== 0) {
+        if (is_int($chosen) && $this->getChosen() !== $chosen) {
             return false;
         }
 
@@ -110,7 +108,9 @@ class Variation
         if ($queryParameterValue && is_numeric($queryParameterValue)) {
             $this->setChosen((int) $queryParameterValue);
         } elseif ($this->options['randomize'] === true && $this->getChosen() === null) {
-            $this->setChosen(rand(1, 2));
+            $this->setChosen(rand(0, self::MAX_VARIATIONS));
+        } elseif (is_int($this->options['default']) && in_array($this->options['default'], range(0, self::MAX_VARIATIONS))) {
+            $this->setChosen($this->options['default']);
         }
 
         return $this;
@@ -191,6 +191,10 @@ class Variation
 
         if (isset($options['randomize'])) {
             $this->options['randomize'] = $options['randomize'];
+        }
+
+        if (isset($options['default'])) {
+            $this->options['default'] = $options['default'];
         }
 
         if (isset($getParams[$this->options['queryParameterName']])) {

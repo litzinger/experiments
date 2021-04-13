@@ -1,7 +1,9 @@
-<?php  if ( !defined('BASEPATH')) exit('No direct script access allowed');
+<?php
 
 $lang = [
     'experiments_always_show' => 'Always Show',
-    'experiments_original' => 'Original',
-    'experiments_variant' => 'Variant',
+    'experiments_control' => 'Control',
+    'experiments_variant_1' => 'Variant 1',
+    'experiments_variant_2' => 'Variant 2',
+    'experiments_variant_3' => 'Variant 3',
 ];

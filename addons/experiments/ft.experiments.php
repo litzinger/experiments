@@ -1,7 +1,5 @@
 <?php
 
-if ( !defined('BASEPATH')) exit('No direct script access allowed');
-
 /**
  * @package     ExpressionEngine
  * @subpackage  Fieldtypes
@@ -70,9 +68,11 @@ class Experiments_ft extends EE_Fieldtype
         ee()->lang->loadfile('experiments');
 
         $this->variantOptions = [
-            0 => lang('experiments_always_show'),
-            1 => lang('experiments_original'),
-            2 => lang('experiments_variant'),
+            '' => lang('experiments_always_show'),
+            0 => lang('experiments_control'),
+            1 => lang('experiments_variant_1'),
+            2 => lang('experiments_variant_2'),
+            3 => lang('experiments_variant_3'),
         ];
     }
 
@@ -127,9 +127,8 @@ class Experiments_ft extends EE_Fieldtype
         }
 
         $name = ee('Format')->make('Text', $optionName)->urlSlug();
-        $field .= form_dropdown($fieldName .'['. $name .']', $options, $data);
 
-        return $field;
+        return form_dropdown($fieldName .'['. $name .']', $options, $data);
     }
 
     /**
@@ -140,8 +139,6 @@ class Experiments_ft extends EE_Fieldtype
      */
     public function replace_tag($data, $params = [], $tagdata = '')
     {
-        $tagdata = ee()->TMPL->parse_variables($tagdata, [$data]);
-
-        return $tagdata;
+        return ee()->TMPL->parse_variables($tagdata, [$data]);
     }
 }
