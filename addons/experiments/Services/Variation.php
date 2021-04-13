@@ -75,7 +75,11 @@ class Variation
     }
 
     /**
-     * @param $chosen
+     * @param int|null $chosen
+     *      null = no experiment is active
+     *      0 = experiment is active, but it's a content that should always show regardless of variation
+     *      1 = experiment is active, show Original content
+     *      2 = experiment is active, show Variant content
      *
      * @return bool
      */
