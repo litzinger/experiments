@@ -128,7 +128,7 @@ class Experiments_ft extends EE_Fieldtype
 
         $name = ee('Format')->make('Text', $optionName)->urlSlug();
 
-        return form_dropdown($fieldName .'['. $name .']', $options, $data);
+        return $field . form_dropdown($fieldName .'['. $name .']', $options, $data);
     }
 
     /**

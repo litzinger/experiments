@@ -108,7 +108,7 @@ class Variation
         if ($queryParameterValue && is_numeric($queryParameterValue)) {
             $this->setChosen((int) $queryParameterValue);
         } elseif ($this->options['randomize'] === true && $this->getChosen() === null) {
-            $this->setChosen(rand(0, self::MAX_VARIATIONS));
+            $this->setChosen(rand(0, 1)); // Randomize option currently only works with Control and Variant 1
         } elseif (is_int($this->options['default']) && in_array($this->options['default'], range(0, self::MAX_VARIATIONS))) {
             $this->setChosen($this->options['default']);
         }
