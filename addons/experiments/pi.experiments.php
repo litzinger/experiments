@@ -148,6 +148,9 @@ class Experiments {
     }
 
     /**
+     * @deprecated - Please use Bloqs 4.6+ and the new {bloqs:children} tag along with the Bloqs Experiments add-on
+     *              https://github.com/litzinger/bloqs-experiments
+     *
      * {exp:channel:entries channel="pages" entry_id="{segment_2}"}
      *      {exp:experiments:bloqs}
      *          {blocks_field}
