@@ -102,7 +102,7 @@ class Experiments_ft extends EE_Fieldtype
             'variation',
             $fieldName,
             $this->variantOptions,
-            ($data ? $data : 0)
+            $data
         );
     }
 

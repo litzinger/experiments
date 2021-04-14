@@ -177,6 +177,19 @@ class Variation
     }
 
     /**
+     * @param string $name
+     * @return mixed|null
+     */
+    public function getOption(string $name)
+    {
+        if (isset($this->options[$name])) {
+            return $this->options[$name];
+        }
+
+        return null;
+    }
+
+    /**
      * @param array $options
      * @param array $getParams
      * @return $this

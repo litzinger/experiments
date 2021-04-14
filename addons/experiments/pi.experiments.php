@@ -80,19 +80,31 @@ class Experiments {
 
     /**
      * {exp:experiments:content choose="{experiment_field_name}"}
-     *      {original}
-     *          Original Content #1
-     *      {/original}
+     *      {if control}
+     *          Control Content #1
+     *      {/if}
      *
      *      Always Shown
      *
-     *      {original}
-     *          Original Content #2
-     *      {/original}
+     *      {if control}
+     *          Control Content #2
+     *      {/if}
      *
-     *      {variant}
+     *      {if variant_1}
      *          Variant Content #1
-     *      {/variant}
+     *      {/if}
+     *
+     *      {if variant_2}
+     *          Variant Content #2
+     *      {/if}
+     *
+     * `    {if variant_3}
+     *          Variant Content #3
+     *      {/if}
+     *
+     *      {if variant_any}
+     *          Variant Content #1, #2, or #3
+     *      {/if}
      * {/exp:experiments:content}
      *
      * @return string
@@ -107,30 +119,30 @@ class Experiments {
         }
 
         $this->variationService->choose($choose);
-
+        $chosen = $this->variationService->getChosen();
         $tagdata = $this->getTagdata();
 
-        ee()->load->library('api');
-        ee()->legacy_api->instantiate('channel_fields');
+        $vars = [
+            $prefix.'control' => false,
+            $prefix.'variant_1' => false,
+            $prefix.'variant_2' => false,
+            $prefix.'variant_3' => false,
+            $prefix.'variant_any' => false,
+        ];
 
-        $originalContentSections = ee()->api_channel_fields->get_pair_field($tagdata, 'original', $prefix);
-        $variantContentSections = ee()->api_channel_fields->get_pair_field($tagdata, 'variant', $prefix);
-
-        foreach ($originalContentSections as $originalContent) {
-            if ($this->variationService->isOriginal() && isset($originalContent[3])) {
-                $tagdata = str_replace($originalContent[3], $originalContent[1], $tagdata);
-            } else {
-                $tagdata = str_replace($originalContent[3], '', $tagdata);
+        if ($chosen === 0) {
+            $vars[$prefix.'control'] = true;
+        } else {
+            foreach (range(0, Variation::MAX_VARIATIONS) as $num) {
+                if ($num === $chosen) {
+                    $vars[$prefix.'variant_' . $num] = true;
+                    $vars[$prefix.'variant_any'] = true;
+                }
             }
         }
 
-        foreach ($variantContentSections as $variantContent) {
-            if ($this->variationService->isVariation() && isset($variantContent[3])) {
-                $tagdata = str_replace($variantContent[3], $variantContent[1], $tagdata);
-            } else {
-                $tagdata = str_replace($variantContent[3], '', $tagdata);
-            }
-        }
+        $tagdata = ee()->functions->prep_conditionals($tagdata, [$vars]);
+        $tagdata = ee()->TMPL->parse_variables($tagdata, [$vars]);
 
         return $tagdata;
     }
@@ -189,7 +201,13 @@ class Experiments {
                 }, ARRAY_FILTER_USE_BOTH);
 
                 // Should only be 1 Experiment field added to a block. If more were added ignore them and use the first.
-                $chosen = (int) reset($vars);
+                $chosen = reset($vars);
+
+                if (is_numeric($chosen)) {
+                    $chosen = (int) $chosen;
+                } else {
+                    $chosen = null;
+                }
 
                 // Remove the block tag pair from the output
                 if (!$this->variationService->shouldShowContent($chosen)) {

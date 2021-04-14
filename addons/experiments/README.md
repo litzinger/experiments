@@ -11,19 +11,27 @@
 ### Content Tag Pair
    
     {exp:experiments:content choose="{experiment_field_name}"}
-       {original}
-           Original Content #1
-       {/original}
+        {if control}
+           Control Content #1
+        {/if}
+        
+        Always Shown Content
+        
+        {if control}
+           Control Content #2
+        {/if}
     
-       Always Shown
-    
-       {original}
-           Original Content #2
-       {/original}
-    
-       {variant}
+        {if variant_1}
            Variant Content #1
-       {/variant}
+        {/if}
+
+        {if variant_2}
+           Variant Content #2
+        {/if}
+
+        {if variant_any}
+           Variant Content #1, #2, or #3
+        {/if}
     {/exp:experiments:content}
 
 ### Bloqs
