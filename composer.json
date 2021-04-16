@@ -1,0 +1,17 @@
+{
+    "name": "boldminded/experiments",
+    "description": "",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "scripts": {
+        "test": [
+            "vendor/bin/phpunit tests"
+        ]
+    },
+    "autoload": {
+        "psr-4": {
+            "BoldMinded\\Experiments\\": "addons/experiments"
+        }
+    }
+}
