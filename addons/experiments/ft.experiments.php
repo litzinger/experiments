@@ -73,6 +73,7 @@ class Experiments_ft extends EE_Fieldtype
             1 => lang('experiments_variant_1'),
             2 => lang('experiments_variant_2'),
             3 => lang('experiments_variant_3'),
+            99 => lang('experiments_variant_any'),
         ];
     }
 

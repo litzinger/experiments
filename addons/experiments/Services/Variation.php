@@ -30,7 +30,7 @@ class Variation
     /**
      * @var boolean
      */
-    private $isOriginal;
+    private $isControl;
 
     /**
      * @var boolean
@@ -56,22 +56,22 @@ class Variation
         }
 
         // If its not a valid variation, or it is defined as 'Always Show'
-        if (!is_int($chosenVariation) || $chosenVariation === 0) {
-            $this->setIsOriginal(false);
+        if (!is_int($chosenVariation)) {
+            $this->setIsControl(false);
             $this->setIsVariation(false);
 
             return $this;
         }
 
-        if ($chosenVariation === 2) {
-            $this->setIsOriginal(false);
-            $this->setIsVariation(true);
+        if ($chosenVariation === 0) {
+            $this->setIsControl(true);
+            $this->setIsVariation(false);
 
             return $this;
         }
 
-        $this->setIsOriginal(true);
-        $this->setIsVariation(false);
+        $this->setIsControl(false);
+        $this->setIsVariation(true);
 
         return $this;
     }
@@ -84,6 +84,10 @@ class Variation
     public function shouldShowContent($chosen)
     {
         $this->chooseVariation();
+
+        if ($chosen === 99 && in_array($this->getChosen(), range(1, self::MAX_VARIATIONS))) {
+            return true;
+        }
 
         if (is_int($chosen) && $this->getChosen() !== $chosen) {
             return false;
@@ -108,7 +112,10 @@ class Variation
         if ($queryParameterValue && is_numeric($queryParameterValue)) {
             $this->setChosen((int) $queryParameterValue);
         } elseif ($this->options['randomize'] === true && $this->getChosen() === null) {
-            $this->setChosen(rand(0, 1)); // Randomize option currently only works with Control and Variant 1
+            // Randomize option currently only works with Control and Variant 1. If we randomize with multiple variants
+            // then we need to know how many there are. Could be 2, could be 3, but currently don't have a means of
+            // determining the max variants in play. We can't randomly pick 3 if there are only 2 variations.
+            $this->setChosen(rand(0, 1));
         } elseif (is_int($this->options['default']) && in_array($this->options['default'], range(0, self::MAX_VARIATIONS))) {
             $this->setChosen($this->options['default']);
         }
@@ -139,19 +146,19 @@ class Variation
     /**
      * @return boolean
      */
-    public function isOriginal()
+    public function isControl()
     {
-        return $this->isOriginal;
+        return $this->isControl;
     }
 
     /**
-     * @param boolean $isOriginal
+     * @param boolean $isControl
      *
      * @return $this
      */
-    public function setIsOriginal($isOriginal)
+    public function setIsControl($isControl)
     {
-        $this->isOriginal = $isOriginal;
+        $this->isControl = $isControl;
 
         return $this;
     }
@@ -225,7 +232,7 @@ class Variation
     public function setOptionsFromConfig(array $eeConfigOptions = [])
     {
         foreach ($this->defaultOptions as $optionKey => $optionValue) {
-            if (isset($eeConfigOptions[$optionKey])) {
+            if (array_key_exists($optionKey, $eeConfigOptions)) {
                 $this->defaultOptions[$optionKey] = $eeConfigOptions[$optionKey];
             }
         }

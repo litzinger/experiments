@@ -1,12 +1,21 @@
 # Experiments 
 
-## Parameters
+## Configuration
 
-    experiment_id
-    query_parameter
-    randomize
-    choose
-    prefix
+Experiments will default to displaying the Control content if no experiment is active (e.g. no `?v=N` value in the URL). If you do not want to show the Control content when no experiment is active, then set the `default` value in your config.php file to null or false.
+
+    $config['experiments'] = [
+        'default' => null,
+    ];
+
+Other available config options with their default values:
+
+    $config['experiments'] = [
+        'queryParameterName' => 'v',
+        'queryParameterValue' => null,
+        'randomize' => false,
+        'default' => 0,
+    ];
 
 ### Content Tag Pair
    
@@ -33,6 +42,14 @@
            Variant Content #1, #2, or #3
         {/if}
     {/exp:experiments:content}
+
+#### Tag Parameters
+
+    experiment_id
+    query_parameter
+    randomize
+    choose
+    prefix
 
 ### Bloqs
 

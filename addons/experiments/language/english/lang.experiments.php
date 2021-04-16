@@ -6,4 +6,5 @@ $lang = [
     'experiments_variant_1' => 'Variant 1',
     'experiments_variant_2' => 'Variant 2',
     'experiments_variant_3' => 'Variant 3',
+    'experiments_variant_any' => 'Any Variant',
 ];
