@@ -6,6 +6,11 @@ class Variation
 {
     const QUERY_PARAM_NAME = 'v';
     const MAX_VARIATIONS = 3;
+    const VARIANT_CONTROL = 0;
+    const VARIANT_1 = 1;
+    const VARIANT_2 = 2;
+    const VARIANT_3 = 3;
+    const VARIANT_ANY = 99;
 
     /**
      * @var int
@@ -19,7 +24,7 @@ class Variation
         'queryParameterName' => self::QUERY_PARAM_NAME,
         'queryParameterValue' => null,
         'randomize' => false,
-        'default' => 0,
+        'default' => self::VARIANT_CONTROL,
     ];
 
     /**
@@ -63,7 +68,7 @@ class Variation
             return $this;
         }
 
-        if ($chosenVariation === 0) {
+        if ($chosenVariation === self::VARIANT_CONTROL) {
             $this->setIsControl(true);
             $this->setIsVariation(false);
 
@@ -85,7 +90,7 @@ class Variation
     {
         $this->chooseVariation();
 
-        if ($chosen === 99 && in_array($this->getChosen(), range(1, self::MAX_VARIATIONS))) {
+        if ($chosen === self::VARIANT_ANY && in_array($this->getChosen(), range(1, self::MAX_VARIATIONS))) {
             return true;
         }
 
@@ -115,7 +120,7 @@ class Variation
             // Randomize option currently only works with Control and Variant 1. If we randomize with multiple variants
             // then we need to know how many there are. Could be 2, could be 3, but currently don't have a means of
             // determining the max variants in play. We can't randomly pick 3 if there are only 2 variations.
-            $this->setChosen(rand(0, 1));
+            $this->setChosen(rand(self::VARIANT_CONTROL, self::VARIANT_1));
         } elseif (is_int($this->options['default']) && in_array($this->options['default'], range(0, self::MAX_VARIATIONS))) {
             $this->setChosen($this->options['default']);
         }

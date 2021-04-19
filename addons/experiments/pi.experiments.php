@@ -130,10 +130,10 @@ class Experiments {
             $prefix.'variant_any' => false,
         ];
 
-        if ($chosen === 0) {
+        if ($chosen === Variation::VARIANT_CONTROL) {
             $vars[$prefix.'control'] = true;
         } else {
-            foreach (range(0, Variation::MAX_VARIATIONS) as $num) {
+            foreach (range(Variation::VARIANT_CONTROL, Variation::MAX_VARIATIONS) as $num) {
                 if ($num === $chosen) {
                     $vars[$prefix.'variant_' . $num] = true;
                     $vars[$prefix.'variant_any'] = true;
