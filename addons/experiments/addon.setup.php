@@ -2,7 +2,7 @@
 
 if (! defined('EXPERIMENTS_VERSION')) {
     define('EXPERIMENTS_NAME', 'Experiments');
-    define('EXPERIMENTS_VERSION', '1.0.1');
+    define('EXPERIMENTS_VERSION', '1.1.0');
 }
 
 return [
